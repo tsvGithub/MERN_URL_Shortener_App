@@ -24,16 +24,22 @@ router.post(
   //express-validator validates email + password
   [
     //   email validate  is error?     chack email
-    check("email", "Email is invalid").isEmail(),
+    check("email", "Email is invalid").isEmail().isEmpty(),
     //   password validate      is error?                         check if is 6 symbols
-    check("password", "Minimum password length is 6 symbols").isLength({ min: 6 }),
+    // check("password", "Minimum password length is 6 symbols").isLength({ min: 6 }).isEmpty(),
+    check("password")
+      .isLength({ min: 6 })
+      .withMessage("Minimum password length is 6 symbols")
+      .isEmpty()
+      .withMessage("Password is required!"),
   ],
   async (req, res) => {
+    console.log(`37 BE auth.routes reg.body: ${req.body}`);
+    // res.json({ requestBody: req.body });
     try {
-      console.log(`reg.body: ${req.body}`);
       //validation data:
       const errors = validationResult(req);
-      console.log(errors);
+      console.log(`42 BE auth.routes validationResult(req): ${errors}`);
       //if errors, return them to FE
       if (!errors.isEmpty()) {
         return res.status(400).json({
@@ -44,8 +50,8 @@ router.post(
       //----------------------------------
       //request from FE
       const { email, password } = req.body;
-      console.log(`server=>routes=>auth.route.js req.body:${req.body}`);
-      console.log(JSON.stringify(req.body));
+      console.log(`53 BE auth.routes req from FE req.body:${req.body}`);
+      console.log(`54 BE auth.routes req from FE JSON.stringify(req.body):`, JSON.stringify(req.body));
       //check User if exists
       const existenUser = await User.findOne({ email });
       if (existenUser) {
@@ -53,13 +59,17 @@ router.post(
       }
       //register new User
       //hash password received from FE
-      const hashedPassword = await bcrypt.hash[(password, 12)];
+      const hashedPassword = await bcrypt.hash[({ password }, 12)];
+      console.log(`63 BE auth.routes hashedPassword:${hashedPassword}`);
+
       const user = new User({ email, password: hashedPassword });
+      console.log(`66 BE auth.routes new user:${user}`);
+
       // const user = new User({ email, password });
 
       await user.save();
 
-      res.status(201).json({ message: "User created" });
+      res.status(201).json({ message: "User created", user });
     } catch (error) {
       throw Error(`Error on registering new User: ${error}`);
     }
